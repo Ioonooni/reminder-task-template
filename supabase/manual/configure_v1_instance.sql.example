@@ -1,0 +1,81 @@
+-- V1 per-instance runtime configuration.
+-- COPY THIS FILE, replace every REPLACE_* placeholder, and run in the target Supabase project.
+-- Do not commit the filled copy.
+
+do $$
+declare
+  v_project_url text := 'REPLACE_PROJECT_URL';
+  v_publishable_key text := 'REPLACE_PUBLISHABLE_KEY';
+  v_vapid_public text := 'REPLACE_VAPID_PUBLIC_KEY';
+  v_vapid_private text := 'REPLACE_VAPID_PRIVATE_KEY';
+  v_scheduler_secret text := 'REPLACE_SCHEDULER_SECRET';
+  v_id uuid;
+  v_jobid bigint;
+begin
+  if v_project_url like 'REPLACE_%'
+     or v_publishable_key like 'REPLACE_%'
+     or v_vapid_public like 'REPLACE_%'
+     or v_vapid_private like 'REPLACE_%'
+     or v_scheduler_secret like 'REPLACE_%' then
+    raise exception 'Replace all REPLACE_* placeholders before running';
+  end if;
+
+  select id into v_id from vault.secrets where name='v1p4_project_url';
+  if v_id is null then
+    perform vault.create_secret(v_project_url,'v1p4_project_url','V1P4 scheduler project URL');
+  else
+    perform vault.update_secret(v_id,v_project_url,'v1p4_project_url','V1P4 scheduler project URL');
+  end if;
+
+  v_id := null;
+  select id into v_id from vault.secrets where name='v1p4_publishable_key';
+  if v_id is null then
+    perform vault.create_secret(v_publishable_key,'v1p4_publishable_key','V1P4 scheduler publishable key');
+  else
+    perform vault.update_secret(v_id,v_publishable_key,'v1p4_publishable_key','V1P4 scheduler publishable key');
+  end if;
+
+  v_id := null;
+  select id into v_id from vault.secrets where name='v1p4_scheduler_secret';
+  if v_id is null then
+    perform vault.create_secret(v_scheduler_secret,'v1p4_scheduler_secret','V1P4 internal scheduler authentication secret');
+  else
+    perform vault.update_secret(v_id,v_scheduler_secret,'v1p4_scheduler_secret','V1P4 internal scheduler authentication secret');
+  end if;
+
+  v_id := null;
+  select id into v_id from vault.secrets where name='v1p3_vapid_public_key';
+  if v_id is null then
+    perform vault.create_secret(v_vapid_public,'v1p3_vapid_public_key','V1 Web Push public VAPID key');
+  else
+    perform vault.update_secret(v_id,v_vapid_public,'v1p3_vapid_public_key','V1 Web Push public VAPID key');
+  end if;
+
+  v_id := null;
+  select id into v_id from vault.secrets where name='v1p3_vapid_private_key';
+  if v_id is null then
+    perform vault.create_secret(v_vapid_private,'v1p3_vapid_private_key','V1 Web Push private VAPID key');
+  else
+    perform vault.update_secret(v_id,v_vapid_private,'v1p3_vapid_private_key','V1 Web Push private VAPID key');
+  end if;
+
+  update public.push_config
+  set vapid_public_key=v_vapid_public,
+      updated_at=now()
+  where id=true;
+
+  select jobid into v_jobid
+  from cron.job
+  where jobname='v1p4-reminder-engine-every-minute'
+  limit 1;
+
+  if v_jobid is null then
+    raise exception 'Reminder cron job not found. Run database migrations first.';
+  end if;
+
+  perform cron.alter_job(job_id := v_jobid, active := true);
+end $$;
+
+select
+  (select vapid_public_key <> 'UNCONFIGURED' from public.push_config where id=true) as push_configured,
+  (select active from cron.job where jobname='v1p4-reminder-engine-every-minute') as scheduler_active;
