@@ -5,6 +5,20 @@ Reusable PWA template for nurse roster-based turning reminders.
 > Created by **IOON**  
 > Canonical source: https://github.com/Ioonooni/reminder-task-template
 
+
+## Original V1 Delivery
+
+The original V1 product was delivered from the initial project brief to release in a **single overnight build cycle of approximately 10.5 hours (~11 hours) end-to-end**.
+
+- Initial project brief: ~19:00, 23 Sep 2026
+- Repository created / implementation began: 20:05
+- V1 released to `main`: 05:22, 24 Sep 2026
+- GitHub implementation window: **9 hours 17 minutes**
+
+This delivery window covered requirements and architecture, authentication and role-based authorization, roster management, PWA/Web Push, the reminder lifecycle, validation, security/release work, and reusable deployment preparation.
+
+> Delivery time is elapsed end-to-end project time, not uninterrupted manual coding time.
+
 ## What it does
 
 - Email/password sign-up with 6-digit email verification
